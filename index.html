@@ -489,6 +489,7 @@ function updNav(){
 }
 var TABS = ['dash','anual','ingreso','metas','dd','import'];
 function goTab(id){
+  try{ localStorage.setItem('ksaval_tab', id); }catch(e){}
   TABS.forEach(function(x){
     document.getElementById('view-'+x).classList.toggle('active', x===id);
     document.getElementById('tab-'+x).classList.toggle('active', x===id);
@@ -740,7 +741,8 @@ function buildAnualEstChart() {
   if(!btnBar){ btnBar = document.createElement('div'); btnBar.className='est-btn-bar'; btnBar.style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;'; cont.insertBefore(btnBar, el); }
   btnBar.innerHTML = STKEYS.map(function(k,i){
     var a = k===selSt;
-    return '<button class="yr-btn" style="border-color:'+STCOLS[i]+';'+(a?'background:'+STCOLS[i]+';color:#fff;':'')+'" onclick="window._selAnualEst=''+k+'';buildAnualEstChart();">'+k+'</button>';
+    var st = 'border-color:'+STCOLS[i]+';'+(a?'background:'+STCOLS[i]+';color:#fff;':'');
+    return '<button class="yr-btn" style="'+st+'" onclick="window._selAnualEst=\'' + k + '\';buildAnualEstChart();">'+k+'</button>';
   }).join('');
 
   CHS['ch-anual-est'] = new Chart(el.getContext('2d'), {
@@ -1071,6 +1073,7 @@ function rMetas(){
     var lbl = document.createElement('label'); lbl.style.color=STCOLS[i]; lbl.textContent=k;
     var input = document.createElement('input'); input.type='number'; input.id='mi_'+k; input.value=metas[k]||0; input.min='0'; input.step='1000';
     input.addEventListener('input', updMetaTot);
+    input.addEventListener('change', function(){ saveMetas(true); });
     wrap.appendChild(lbl); wrap.appendChild(input); inp.appendChild(wrap);
   });
   updMetaTot();
@@ -1094,13 +1097,12 @@ function updMetaTot(){
   document.getElementById('meta-tot-lbl').textContent = fmt(tot);
 }
 
-function saveMetas(){
+function saveMetas(silent){
   var STKEYS = getSTKEYS();
   var obj = {};
   STKEYS.forEach(function(k){ var el=document.getElementById('mi_'+k); if(el) obj[k]=parseInt(el.value)||0; });
   try{ localStorage.setItem('ksaval_metas_'+curKey, JSON.stringify(obj)); }catch(e){}
-  toast('Metas guardadas para '+ALL_MONTHS[curKey].label+' ✓');
-  rDash();
+  if(!silent){ toast('Metas guardadas para '+ALL_MONTHS[curKey].label+' ✓'); rDash(); }
 }
 
 function copyMetasFromPrev(){
@@ -1273,7 +1275,7 @@ function rImport(){
 // INICIALIZACION
 // ============================================================
 updNav();
-rDash();
+(function(){ try{ var t=localStorage.getItem('ksaval_tab'); if(t && document.getElementById('tab-'+t)) goTab(t); else rDash(); }catch(e){ rDash(); } })();
 </script>
 </body>
 </html>
