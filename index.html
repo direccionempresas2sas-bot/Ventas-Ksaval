@@ -164,6 +164,9 @@ body.dark .ley span,.ley-dot{color:#e5e7eb !important;}
 body.dark .inp-item label{color:#f3f4f6 !important;}
 body.dark .modal-box{background:#1f2937;color:#f9fafb;}
 </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div id="app">
@@ -201,6 +204,10 @@ body.dark .modal-box{background:#1f2937;color:#f9fafb;}
   <div style="display:flex;align-items:center;gap:14px;">
     <div>
       <button class="btn-sec" onclick="exportBackup()" title="Copia de seguridad" style="font-size:.72rem;padding:7px 14px;">&#128190; Backup</button>
+      <div id="sync-status" title="Estado sincronización Firebase" style="display:flex;align-items:center;gap:5px;font-size:.65rem;font-weight:700;color:var(--mu);padding:4px 8px;border:1px solid var(--bd);border-radius:6px;">
+        <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#d1d5db;display:inline-block;"></span>
+        <span id="sync-lbl">Conectando...</span>
+      </div>
     </div>
     <div style="text-align:right;"><button id="theme-toggle" onclick="toggleTheme()" style="background:none;border:1px solid var(--bd);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:.65rem;font-weight:700;color:var(--mu);margin-bottom:4px;display:block;margin-left:auto;">&#9728; CLARO</button><div class="clk" id="clk">--:--:--</div><div class="clkd" id="clkd">--</div></div>
   </div>
@@ -680,6 +687,157 @@ function getChartGridColor(){
 function getChartBgColor(){
   return document.body.classList.contains('dark') ? '#1f2937' : '#ffffff';
 }
+
+// ============================================================
+// FIREBASE SYNC
+// ============================================================
+var _fbApp = null, _fbDb = null, _fbConnected = false;
+var _fbConfig = null;
+
+function fbInit(){
+  try {
+    // Config embebida directamente - no requiere configuracion manual
+    _fbConfig = {
+      apiKey: "AIzaSyCBWS7259HObCKJ33MbPxFg1e6y0Z7wBpw",
+      authDomain: "ventas-eds.firebaseapp.com",
+      databaseURL: "https://ventas-eds-default-rtdb.firebaseio.com",
+      projectId: "ventas-eds",
+      storageBucket: "ventas-eds.firebasestorage.app",
+      messagingSenderId: "743663479683",
+      appId: "1:743663479683:web:53a53daff0d27a4d2264b6"
+    };
+
+    // Inicializar Firebase (evitar doble init)
+    if(firebase.apps && firebase.apps.length > 0){
+      _fbApp = firebase.apps[0];
+    } else {
+      _fbApp = firebase.initializeApp(_fbConfig);
+    }
+    _fbDb = firebase.database(_fbApp);
+
+    // Escuchar cambios en tiempo real
+    _fbDb.ref('ksaval/manual').on('value', function(snap){
+      var data = snap.val();
+      if(data){
+        Object.keys(data).forEach(function(mes){
+          if(!MANUAL[mes]) MANUAL[mes] = {};
+          Object.keys(data[mes]).forEach(function(dia){
+            MANUAL[mes][dia] = data[mes][dia];
+          });
+        });
+        rDash();
+      }
+      fbSetStatus(true);
+    }, function(err){
+      fbSetStatus(false);
+    });
+
+    // Escuchar metas
+    _fbDb.ref('ksaval/metas').on('value', function(snap){
+      var data = snap.val();
+      if(data){
+        Object.keys(data).forEach(function(key){
+          try{ localStorage.setItem('ksaval_metas_'+key, JSON.stringify(data[key])); }catch(e){}
+        });
+      }
+    });
+
+    fbSetStatus(true);
+    console.log('Firebase conectado OK');
+  } catch(e) {
+    console.log('Firebase error:', e);
+    fbSetStatus(false);
+  }
+}
+
+function fbSetStatus(ok){
+  _fbConnected = ok;
+  var dot = document.getElementById('sync-dot');
+  var lbl = document.getElementById('sync-lbl');
+  if(dot) dot.style.background = ok ? '#22c55e' : '#ef4444';
+  if(lbl) lbl.textContent = ok ? 'En la nube' : 'Sin conexión';
+}
+
+function fbShowConfig(){
+  var modal = document.getElementById('fb-modal');
+  modal.style.display = 'flex';
+  // Prellenar si hay config guardada
+  if(_fbConfig){
+    document.getElementById('fb-apikey').value = _fbConfig.apiKey || '';
+    document.getElementById('fb-dburl').value = _fbConfig.databaseURL || '';
+    document.getElementById('fb-projid').value = _fbConfig.projectId || '';
+  }
+}
+
+function fbCloseConfig(){
+  document.getElementById('fb-modal').style.display = 'none';
+}
+
+function fbSaveConfig(){
+  var apiKey = document.getElementById('fb-apikey').value.trim();
+  var dbUrl = document.getElementById('fb-dburl').value.trim();
+  var projId = document.getElementById('fb-projid').value.trim();
+  var errEl = document.getElementById('fb-modal-err');
+
+  if(!apiKey || !dbUrl){
+    errEl.textContent = 'API Key y Database URL son obligatorios';
+    return;
+  }
+  errEl.textContent = '';
+
+  var cfg = {apiKey:apiKey, databaseURL:dbUrl, projectId:projId};
+  try{ localStorage.setItem('ksaval_firebase', JSON.stringify(cfg)); }catch(e){}
+  _fbConfig = cfg;
+
+  // Reinicializar
+  _fbApp = null; _fbDb = null;
+  if(firebase.apps){
+    firebase.apps.forEach(function(app){ try{ app.delete(); }catch(e){} });
+  }
+  fbInit();
+  fbCloseConfig();
+  toast('Conectando a Firebase...');
+}
+
+// Sobrescribir saveManual para también guardar en Firebase
+var _origSaveManual = null;
+(function(){
+  var orig = saveManual;
+  saveManual = function(){
+    orig();
+    fbPushManual();
+  };
+})();
+
+function fbPushManual(){
+  if(!_fbDb || !_fbConnected) return;
+  try{
+    _fbDb.ref('ksaval/manual').set(MANUAL);
+  }catch(e){}
+}
+
+// Sobrescribir saveMetas para también guardar en Firebase
+var _origSaveMetas = null;
+(function(){
+  var orig = saveMetas;
+  saveMetas = function(silent){
+    orig(silent);
+    fbPushMetas();
+  };
+})();
+
+function fbPushMetas(){
+  if(!_fbDb || !_fbConnected) return;
+  try{
+    var allMetas = {};
+    MONTH_KEYS.forEach(function(key){
+      var m = getMetasForKey(key);
+      if(m && Object.keys(m).length > 0) allMetas[key] = m;
+    });
+    _fbDb.ref('ksaval/metas').set(allMetas);
+  }catch(e){}
+}
+
 // ============================================================
 // RELOJ
 // ============================================================
@@ -1089,28 +1247,67 @@ function buildAnualView() {
   var estEl = document.getElementById('ch-est-anual');
   if(estEl) {
     // Para cada estacion, calcular cumplimiento en cada mes
+    // Barras agrupadas por estacion + línea de meta total
     var estDatasets = STKEYS.map(function(k,i){
       var data = validMonths.map(function(d){
         var days = getAllDays(d.key);
         var total = Object.values(days).reduce(function(a,dd){return a+(dd[k]||0);},0);
-        var meta = (getMetasForKey(d.key)[k])||0;
-        return meta > 0 ? +(total/meta*100).toFixed(1) : null;
+        return total > 0 ? total : null;
       });
-      return {label:k, data:data, borderColor:STCOLS[i], backgroundColor:STCOLS[i]+'33', fill:true, tension:.3, pointRadius:6, pointHoverRadius:9, borderWidth:2.5, pointBackgroundColor:'#fff', pointBorderWidth:2};
+      return {
+        label:k, data:data, type:'bar',
+        backgroundColor:STCOLS[i]+'cc', borderColor:STCOLS[i],
+        borderWidth:1.5, borderRadius:4, borderSkipped:false
+      };
     });
+    // Línea de meta total por mes
+    var metaLine = {
+      label:'Meta total', type:'line',
+      data: validMonths.map(function(d){
+        var metas = getMetasForKey(d.key);
+        var t = STKEYS.reduce(function(a,k){return a+(metas[k]||0);},0);
+        return t > 0 ? t : null;
+      }),
+      borderColor:'#E8641A', borderWidth:2.5, borderDash:[6,4],
+      pointRadius:5, pointBackgroundColor:'#fff', pointBorderColor:'#E8641A', pointBorderWidth:2,
+      fill:false, tension:0, order:0
+    };
+    estDatasets.push(metaLine);
+
     CHS['ch-est-anual'] = new Chart(estEl.getContext('2d'), {
-      type:'line',
+      type:'bar',
       data:{labels:validMonths.map(function(d){return d.shortLabel;}), datasets:estDatasets},
       options:{
-        responsive:true,maintainAspectRatio:false,
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
         plugins:{
-          legend:{position:'bottom',labels:{color:'#374151',font:{size:12,weight:'bold'},boxWidth:12,padding:20}},
-          tooltip:{mode:'index',intersect:false,backgroundColor:'#fff',borderColor:'#E8641A',borderWidth:1,titleColor:'#1a1a2e',bodyColor:'#374151',padding:12,callbacks:{label:function(c){return ' '+c.dataset.label+': '+(c.parsed.y!=null?c.parsed.y+'%':'Sin datos');}}},
-          annotation:{annotations:{line100:{type:'line',yMin:100,yMax:100,borderColor:'rgba(232,100,26,.5)',borderWidth:1.5,borderDash:[6,4],label:{content:'Meta 100%',enabled:true,position:'end',color:'#E8641A',font:{size:10}}}}}
+          legend:{
+            position:'bottom',
+            labels:{color:'#374151', font:{size:11,weight:'bold'}, boxWidth:12, padding:16}
+          },
+          tooltip:{
+            backgroundColor:'#fff', borderColor:'#E8641A', borderWidth:1,
+            titleColor:'#1a1a2e', bodyColor:'#374151', padding:12,
+            callbacks:{
+              label:function(c){
+                var v=c.parsed.y;
+                if(v==null) return '';
+                return ' '+c.dataset.label+': '+v.toLocaleString('es-CO',{maximumFractionDigits:0})+' gln';
+              }
+            }
+          }
         },
         scales:{
-          x:{ticks:{color:'#374151',font:{size:12,weight:'bold'},maxRotation:0},grid:{color:'rgba(0,0,0,.04)'},border:{display:false}},
-          y:{ticks:{color:'#374151',font:{size:11},callback:function(v){return v+'%';},stepSize:20},grid:{color:'rgba(0,0,0,.06)'},min:0,max:140,border:{display:false}}
+          x:{
+            stacked:false,
+            ticks:{color:'#374151', font:{size:11,weight:'bold'}, maxRotation:0},
+            grid:{color:'rgba(0,0,0,.04)'}, border:{display:false}
+          },
+          y:{
+            stacked:false,
+            ticks:{color:'#374151', font:{size:11}, callback:function(v){return (v/1000).toFixed(0)+'K';}},
+            grid:{color:'rgba(0,0,0,.06)'}, border:{display:false}
+          }
         }
       }
     });
@@ -1470,9 +1667,45 @@ function rImport(){
 // ============================================================
 updNav();
 rDash();
+fbInit();
 </script>
 
 <div id="st-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;align-items:center;justify-content:center;" onclick="if(event.target===this)closeStModal();"><div style="background:var(--card);border-radius:16px;padding:28px;min-width:340px;max-width:520px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.25);"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><div id="st-modal-dot" style="width:14px;height:14px;border-radius:50%;"></div><div id="st-modal-title" style="font-weight:900;font-size:1.1rem;color:var(--tx);"></div><button onclick="closeStModal()" style="margin-left:auto;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--mu);">&#10005;</button></div><div id="st-modal-body"></div></div></div>
 
+
+<!-- Modal Firebase Config -->
+<div id="fb-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border-radius:16px;padding:32px;min-width:340px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.3);">
+    <div style="font-size:1.8rem;text-align:center;margin-bottom:6px;">&#9729;&#65039;</div>
+    <div style="font-weight:900;font-size:1.1rem;color:var(--tx);text-align:center;margin-bottom:4px;">Configurar Firebase</div>
+    <div style="font-size:.75rem;color:var(--mu);text-align:center;margin-bottom:20px;">Ingrese los datos de su proyecto Firebase para sincronizar en la nube</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <div>
+        <label style="font-size:.7rem;font-weight:700;color:var(--mu);display:block;margin-bottom:4px;">API KEY</label>
+        <input id="fb-apikey" type="text" placeholder="AIzaSy..." style="width:100%;padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--tx);box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.7rem;font-weight:700;color:var(--mu);display:block;margin-bottom:4px;">DATABASE URL</label>
+        <input id="fb-dburl" type="text" placeholder="https://mi-proyecto-default-rtdb.firebaseio.com" style="width:100%;padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--tx);box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.7rem;font-weight:700;color:var(--mu);display:block;margin-bottom:4px;">PROJECT ID</label>
+        <input id="fb-projid" type="text" placeholder="mi-proyecto" style="width:100%;padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--tx);box-sizing:border-box;">
+      </div>
+    </div>
+    <div id="fb-modal-err" style="color:#ef4444;font-size:.75rem;min-height:16px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button class="btn-sec" onclick="fbCloseConfig()">Cancelar</button>
+      <button class="btn-or" onclick="fbSaveConfig()">Conectar</button>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bd);font-size:.7rem;color:var(--mu);">
+      <strong style="color:var(--tx);">&#128218; Cómo obtener estos datos:</strong><br>
+      1. Vaya a <a href="https://console.firebase.google.com" target="_blank" style="color:#E8641A;">console.firebase.google.com</a><br>
+      2. Cree un proyecto → Realtime Database → Crear base de datos<br>
+      3. En Configuración del proyecto → Sus aplicaciones → Agregar app web<br>
+      4. Copie apiKey, databaseURL y projectId aquí
+    </div>
+  </div>
+</div>
 </body>
 </html>
