@@ -241,6 +241,19 @@ body.dark header{background:#111827;border-color:#374151;}
 
 <!-- INGRESAR VENTAS -->
 <div class="view" id="view-ingreso">
+  <div id="ingreso-lock" style="background:var(--card);border:2px solid var(--bd);border-radius:14px;padding:24px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div style="font-size:2rem;">&#128274;</div>
+    <div style="flex:1;">
+      <div style="font-weight:800;font-size:1rem;color:var(--tx);">Modulo protegido</div>
+      <div style="font-size:.8rem;color:var(--mu);margin-top:2px;">Ingrese la contrasena para habilitar la edicion</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="pw-ingreso" type="password" placeholder="Contrasena" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:.9rem;background:var(--bg);color:var(--tx);width:180px;" onkeydown="if(event.key==='Enter')unlockModule('ingreso');">
+      <button class="btn-or" onclick="unlockModule('ingreso')" style="padding:8px 16px;">Entrar</button>
+    </div>
+    <div id="pw-ingreso-err" style="color:#ef4444;font-size:.78rem;width:100%;display:none;">Contrasena incorrecta</div>
+  </div>
+  <div id="ingreso-content" style="pointer-events:none;opacity:.4;filter:blur(2px);">
   <div class="card">
     <div class="st"><div class="sb"></div><span class="sl">Seleccione el Dia</span></div>
     <div class="leyenda" style="margin-bottom:12px;">
@@ -264,10 +277,23 @@ body.dark header{background:#111827;border-color:#374151;}
       <button class="btn-sec" onclick="borrarManual()">&#10005; Borrar datos manuales</button>
     </div>
   </div>
-</div>
+</div></div>
 
 <!-- METAS -->
 <div class="view" id="view-metas">
+  <div id="metas-lock" style="background:var(--card);border:2px solid var(--bd);border-radius:14px;padding:24px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div style="font-size:2rem;">&#128274;</div>
+    <div style="flex:1;">
+      <div style="font-weight:800;font-size:1rem;color:var(--tx);">Modulo protegido</div>
+      <div style="font-size:.8rem;color:var(--mu);margin-top:2px;">Ingrese la contrasena para habilitar la edicion</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="pw-metas" type="password" placeholder="Contrasena" style="padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:.9rem;background:var(--bg);color:var(--tx);width:180px;" onkeydown="if(event.key==='Enter')unlockModule('metas');">
+      <button class="btn-or" onclick="unlockModule('metas')" style="padding:8px 16px;">Entrar</button>
+    </div>
+    <div id="pw-metas-err" style="color:#ef4444;font-size:.78rem;width:100%;display:none;">Contrasena incorrecta</div>
+  </div>
+  <div id="metas-content" style="pointer-events:none;opacity:.4;filter:blur(2px);">
   <div class="card">
     <div class="st"><div class="sb"></div><span class="sl">Metas del Mes (Galones)</span></div>
     <p style="font-size:.73rem;color:var(--mu);margin-bottom:14px">Ajuste las metas por estacion para el mes seleccionado. Los cambios se guardan localmente.</p>
@@ -297,7 +323,7 @@ body.dark header{background:#111827;border-color:#374151;}
     </div>
     <div id="custom-stations-list" style="margin-top:12px;font-size:.74rem;color:var(--mu);"></div>
   </div>
-</div>
+</div></div>
 
 <!-- DIA A DIA -->
 <div class="view" id="view-dd">
@@ -362,8 +388,20 @@ var CUSTOM_STATIONS = []; // {key, color}
 var selAnualYear = 2026;
 var selAnualMonth = null;
 
-// Cargar datos guardados
-try { var _m = localStorage.getItem('ksaval_manual'); if(_m) MANUAL = JSON.parse(_m); } catch(e) {}
+// Cargar datos guardados - merge localStorage encima del backup embebido
+try {
+  var _m = localStorage.getItem('ksaval_manual');
+  if(_m) {
+    var _mObj = JSON.parse(_m);
+    // Merge: para cada mes en localStorage, mergear dias encima del backup
+    Object.keys(_mObj).forEach(function(mes){
+      if(!MANUAL[mes]) MANUAL[mes] = {};
+      Object.keys(_mObj[mes]).forEach(function(dia){
+        MANUAL[mes][dia] = _mObj[mes][dia];
+      });
+    });
+  }
+} catch(e) {}
 try { var _cs = localStorage.getItem('ksaval_custom_stations'); if(_cs) CUSTOM_STATIONS = JSON.parse(_cs); } catch(e) {}
 
 // Restaurar datos de meses manuales guardados
@@ -508,31 +546,6 @@ function _kpi(label,value,color){
 function closeStModal(){document.getElementById('st-modal').style.display='none';}
 
 // Contrasena
-var _pwTarget=null;
-function requirePw(tabId){
-  document.getElementById('pw-modal').style.display='flex';
-  document.getElementById('pw-input').value='';
-  document.getElementById('pw-error').textContent='';
-  setTimeout(function(){document.getElementById('pw-input').focus();},100);
-  _pwTarget=tabId;
-}
-function checkPw(){
-  if(document.getElementById('pw-input').value==='Presidencia2026*'){
-    closePwModal();
-    var TABS=['dash','anual','ingreso','metas','dd','import'];
-    TABS.forEach(function(x){
-      document.getElementById('view-'+x).classList.toggle('active',x===_pwTarget);
-      document.getElementById('tab-'+x).classList.toggle('active',x===_pwTarget);
-    });
-    if(_pwTarget==='ingreso')rIngreso();
-    if(_pwTarget==='metas')rMetas();
-    try{localStorage.setItem('ksaval_tab',_pwTarget);}catch(e){}
-  } else {
-    document.getElementById('pw-error').textContent='Contrasena incorrecta';
-    document.getElementById('pw-input').select();
-  }
-}
-function closePwModal(){document.getElementById('pw-modal').style.display='none';_pwTarget=null;}
 
 // Calendario picker
 var _calYear=2026;
@@ -586,6 +599,44 @@ function goCalMonth(key){
   rAll();
 }
 
+
+// Desbloqueo de modulos
+var _unlocked = {};
+function unlockModule(mod){
+  var pwEl = document.getElementById('pw-'+mod);
+  var errEl = document.getElementById('pw-'+mod+'-err');
+  if(pwEl.value === 'Presidencia2026*'){
+    _unlocked[mod] = true;
+    document.getElementById(mod+'-lock').style.display = 'none';
+    var cont = document.getElementById(mod+'-content');
+    cont.style.pointerEvents = 'auto';
+    cont.style.opacity = '1';
+    cont.style.filter = 'none';
+    errEl.style.display = 'none';
+  } else {
+    errEl.style.display = 'block';
+    pwEl.value = '';
+    pwEl.focus();
+  }
+}
+// Volver a bloquear al cambiar de modulo
+var _origGoTab = null;
+(function(){
+  var _goTabOrig = goTab;
+  window.goTab = function(id){
+    // Si sale de ingreso o metas sin contraseña, re-bloquear
+    ['ingreso','metas'].forEach(function(mod){
+      if(id !== mod && !_unlocked[mod]){
+        var cont = document.getElementById(mod+'-content');
+        if(cont){ cont.style.pointerEvents='none'; cont.style.opacity='.4'; cont.style.filter='blur(2px)'; }
+        var lock = document.getElementById(mod+'-lock');
+        if(lock) lock.style.display='flex';
+      }
+    });
+    _goTabOrig(id);
+  };
+})();
+
 // ============================================================
 // RELOJ
 // ============================================================
@@ -620,8 +671,8 @@ function goTab(id){
   });
   if(id==='dash') rDash();
   if(id==='anual') rAnual();
-  if(id==='ingreso'){ requirePw('ingreso'); return; }
-  if(id==='metas'){ requirePw('metas'); return; }
+  if(id==='ingreso') rIngreso();
+  if(id==='metas') rMetas();
   if(id==='dd') rDD();
   if(id==='import') rImport();
 }
@@ -1377,6 +1428,6 @@ rDash();
 </script>
 
 <div id="st-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;align-items:center;justify-content:center;" onclick="if(event.target===this)closeStModal();"><div style="background:var(--card);border-radius:16px;padding:28px;min-width:340px;max-width:520px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.25);"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><div id="st-modal-dot" style="width:14px;height:14px;border-radius:50%;"></div><div id="st-modal-title" style="font-weight:900;font-size:1.1rem;color:var(--tx);"></div><button onclick="closeStModal()" style="margin-left:auto;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--mu);">&#10005;</button></div><div id="st-modal-body"></div></div></div>
-<div id="pw-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;"><div style="background:var(--card);border-radius:16px;padding:36px 32px;min-width:320px;box-shadow:0 8px 40px rgba(0,0,0,.25);text-align:center;"><div style="font-size:2rem;margin-bottom:8px;">&#128274;</div><div style="font-weight:800;font-size:1.1rem;color:var(--tx);margin-bottom:6px;">Acceso restringido</div><div style="font-size:.8rem;color:var(--mu);margin-bottom:20px;">Ingrese la contrasena para continuar</div><input id="pw-input" type="password" placeholder="Contrasena" style="width:100%;padding:10px 14px;border:1.5px solid var(--bd);border-radius:8px;font-size:1rem;background:var(--bg);color:var(--tx);margin-bottom:12px;box-sizing:border-box;" onkeydown="if(event.key==='Enter')checkPw();"><div id="pw-error" style="color:#ef4444;font-size:.78rem;min-height:18px;margin-bottom:10px;"></div><div style="display:flex;gap:10px;justify-content:center;"><button class="btn-sec" onclick="closePwModal()">Cancelar</button><button class="btn-or" onclick="checkPw()">Entrar</button></div></div></div>
+
 </body>
 </html>
