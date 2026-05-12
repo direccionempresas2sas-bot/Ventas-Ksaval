@@ -258,7 +258,7 @@ body.dark .modal-box{background:#1f2937;color:#f9fafb;}
   <!-- Grafico de cumplimiento por estacion en el año -->
   <div class="card">
     <div class="st"><div class="sb"></div><span class="sl" id="anual-est-title">Cumplimiento por Estacion en el Año (%)</span></div>
-    <div class="ch-tall"><canvas id="ch-est-anual" style="min-height:320px;"></canvas></div>
+    <div class="ch-tall"><canvas id="ch-est-anual" style="min-height:420px;"></canvas></div>
   </div>
 </div>
 
@@ -1219,7 +1219,7 @@ function buildAnualView() {
   var monthData = [];
   for(var m=1; m<=12; m++){
     var key = selAnualYear+'-'+m;
-    if(!ALL_MONTHS[key]) { monthData.push(null); continue; }
+    if(!ALL_MONTHS[key]){ monthData.push(null); continue; }
     var days = getAllDays(key);
     var total = Object.values(days).reduce(function(a,d){return a+d.total;},0);
     var metas = getMetasForKey(key);
@@ -1227,12 +1227,12 @@ function buildAnualView() {
     var pct = metaTotal > 0 ? total/metaTotal : 0;
     monthData.push({m:m, label:monthNames[m-1], shortLabel:monthLabels[m-1], total:total, meta:metaTotal, pct:pct, key:key});
   }
-  var validMonths = monthData.filter(function(d){return d!==null;});
+  var validMonths = monthData.filter(function(d){ return d !== null; });
 
   // Cards de meses
   var grid = document.getElementById('anual-months-grid');
   grid.innerHTML = validMonths.map(function(d){
-    var c = sem(d.pct), w = Math.min(d.pct*100,100);
+    var c = sem(d.pct), w = Math.min(d.pct*100, 100);
     var isSel = selAnualMonth === d.m;
     return '<div class="month-card'+(isSel?' active-month':'')+'" onclick="selectAnualMonth('+d.m+')" style="border-left:4px solid '+c+';">'+
       '<div class="mc-name" style="color:'+c+'">'+d.label+'</div>'+
@@ -1242,79 +1242,169 @@ function buildAnualView() {
       '</div>';
   }).join('');
 
-  // Grafico cumplimiento por estacion en el año
+  // ── GRÁFICA EJECUTIVA ──────────────────────────────────────
   dch('ch-est-anual');
   var estEl = document.getElementById('ch-est-anual');
-  if(estEl) {
-    // Para cada estacion, calcular cumplimiento en cada mes
-    // Barras agrupadas por estacion + línea de meta total
-    var estDatasets = STKEYS.map(function(k,i){
-      var data = validMonths.map(function(d){
-        var days = getAllDays(d.key);
-        var total = Object.values(days).reduce(function(a,dd){return a+(dd[k]||0);},0);
-        return total > 0 ? total : null;
-      });
-      return {
-        label:k, data:data, type:'bar',
-        backgroundColor:STCOLS[i]+'cc', borderColor:STCOLS[i],
-        borderWidth:1.5, borderRadius:4, borderSkipped:false
-      };
-    });
-    // Línea de meta total por mes
-    var metaLine = {
-      label:'Meta total', type:'line',
-      data: validMonths.map(function(d){
-        var metas = getMetasForKey(d.key);
-        var t = STKEYS.reduce(function(a,k){return a+(metas[k]||0);},0);
-        return t > 0 ? t : null;
-      }),
-      borderColor:'#E8641A', borderWidth:2.5, borderDash:[6,4],
-      pointRadius:5, pointBackgroundColor:'#fff', pointBorderColor:'#E8641A', pointBorderWidth:2,
-      fill:false, tension:0, order:0
-    };
-    estDatasets.push(metaLine);
+  if(!estEl) return;
 
-    CHS['ch-est-anual'] = new Chart(estEl.getContext('2d'), {
-      type:'bar',
-      data:{labels:validMonths.map(function(d){return d.shortLabel;}), datasets:estDatasets},
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        interaction:{mode:'index', intersect:false},
-        plugins:{
-          legend:{
-            position:'bottom',
-            labels:{color:'#374151', font:{size:11,weight:'bold'}, boxWidth:12, padding:16}
-          },
-          tooltip:{
-            backgroundColor:'#fff', borderColor:'#E8641A', borderWidth:1,
-            titleColor:'#1a1a2e', bodyColor:'#374151', padding:12,
-            callbacks:{
-              label:function(c){
-                var v=c.parsed.y;
-                if(v==null) return '';
-                return ' '+c.dataset.label+': '+v.toLocaleString('es-CO',{maximumFractionDigits:0})+' gln';
-              }
+  var isDark = document.body.classList.contains('dark');
+  var tc = isDark ? '#f3f4f6' : '#374151';
+  var gc = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.05)';
+  var bgTip = isDark ? '#1f2937' : '#ffffff';
+
+  // Barras apiladas por estación
+  var barDatasets = STKEYS.map(function(k, i){
+    return {
+      label: k,
+      type: 'bar',
+      data: validMonths.map(function(d){
+        var dd = getAllDays(d.key);
+        var v = Object.values(dd).reduce(function(a,x){ return a+(x[k]||0); }, 0);
+        return v > 0 ? v : null;
+      }),
+      backgroundColor: STCOLS[i],
+      borderColor: STCOLS[i],
+      borderWidth: 0,
+      borderRadius: { topLeft:0, topRight:0, bottomLeft:0, bottomRight:0 },
+      stack: 'ventas',
+      yAxisID: 'y',
+      order: 2
+    };
+  });
+
+  // Línea meta (eje izquierdo, sin stack)
+  var metaDataset = {
+    label: 'Meta',
+    type: 'line',
+    data: validMonths.map(function(d){ return d.meta > 0 ? d.meta : null; }),
+    borderColor: '#94a3b8',
+    borderWidth: 2,
+    borderDash: [8, 5],
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    pointBackgroundColor: '#fff',
+    fill: false,
+    tension: 0,
+    yAxisID: 'y',
+    stack: '',
+    order: 1
+  };
+
+  // Línea cumplimiento % (eje derecho)
+  var cumplDataset = {
+    label: 'Cumplimiento %',
+    type: 'line',
+    data: validMonths.map(function(d){ return d.meta > 0 ? +(d.pct*100).toFixed(1) : null; }),
+    borderColor: '#E8641A',
+    borderWidth: 3,
+    pointRadius: 7,
+    pointBackgroundColor: validMonths.map(function(d){ return sem(d.pct); }),
+    pointBorderColor: '#fff',
+    pointBorderWidth: 2,
+    pointHoverRadius: 11,
+    fill: false,
+    tension: 0.3,
+    yAxisID: 'y2',
+    stack: '',
+    order: 0,
+    datalabels: { display: false }
+  };
+
+  var allDatasets = barDatasets.concat([metaDataset, cumplDataset]);
+
+  CHS['ch-est-anual'] = new Chart(estEl.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: validMonths.map(function(d){ return d.shortLabel; }),
+      datasets: allDatasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: tc,
+            font: { size: 11, weight: 'bold' },
+            boxWidth: 12,
+            padding: 20,
+            usePointStyle: true,
+            filter: function(item){
+              // Mostrar todas las estaciones + Meta + Cumplimiento
+              return true;
             }
           }
         },
-        scales:{
-          x:{
-            stacked:false,
-            ticks:{color:'#374151', font:{size:11,weight:'bold'}, maxRotation:0},
-            grid:{color:'rgba(0,0,0,.04)'}, border:{display:false}
-          },
-          y:{
-            stacked:false,
-            ticks:{color:'#374151', font:{size:11}, callback:function(v){return (v/1000).toFixed(0)+'K';}},
-            grid:{color:'rgba(0,0,0,.06)'}, border:{display:false}
+        tooltip: {
+          backgroundColor: bgTip,
+          borderColor: '#E8641A',
+          borderWidth: 1,
+          titleColor: tc,
+          bodyColor: tc,
+          padding: 14,
+          callbacks: {
+            title: function(items){
+              var d = validMonths[items[0].dataIndex];
+              return d ? d.label + ' ' + selAnualYear : '';
+            },
+            label: function(c){
+              var v = c.parsed.y;
+              if(v == null || v === 0) return '';
+              if(c.dataset.yAxisID === 'y2')
+                return '  ✓ Cumplimiento: ' + v.toFixed(1) + '%';
+              if(c.dataset.label === 'Meta')
+                return '  □ Meta: ' + v.toLocaleString('es-CO',{maximumFractionDigits:0}) + ' gln';
+              return '  ■ ' + c.dataset.label + ': ' + v.toLocaleString('es-CO',{maximumFractionDigits:0}) + ' gln';
+            },
+            footer: function(items){
+              var total = 0;
+              items.forEach(function(c){
+                if(c.dataset.yAxisID === 'y' && c.dataset.label !== 'Meta' && c.parsed.y)
+                  total += c.parsed.y;
+              });
+              return total > 0 ? 'TOTAL: ' + total.toLocaleString('es-CO',{maximumFractionDigits:0}) + ' gln' : '';
+            }
           }
         }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: tc, font: { size: 12, weight: 'bold' }, maxRotation: 0 },
+          grid: { display: false },
+          border: { display: false }
+        },
+        y: {
+          stacked: true,
+          position: 'left',
+          title: { display: true, text: 'Galones', color: tc, font: { size: 11, weight: 'bold' } },
+          ticks: { color: tc, font: { size: 11 }, callback: function(v){ return (v/1000).toFixed(0)+'K'; } },
+          grid: { color: gc },
+          border: { display: false }
+        },
+        y2: {
+          stacked: false,
+          position: 'right',
+          min: 0,
+          max: 150,
+          title: { display: true, text: 'Cumplimiento %', color: '#E8641A', font: { size: 11, weight: 'bold' } },
+          ticks: {
+            color: '#E8641A',
+            font: { size: 11 },
+            callback: function(v){ return v + '%'; },
+            stepSize: 25
+          },
+          grid: { display: false },
+          border: { display: false }
+        }
       }
-    });
-  }
+    }
+  });
 
   // Detalle del mes seleccionado
-  if(selAnualMonth) {
+  if(selAnualMonth){
     showAnualMonthDetail(selAnualMonth);
   } else {
     document.getElementById('anual-station-detail').style.display = 'none';
