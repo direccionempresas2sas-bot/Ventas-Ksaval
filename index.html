@@ -15,7 +15,6 @@
 html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:'Segoe UI',Arial,sans-serif;}
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(232,100,26,.04) 50px),repeating-linear-gradient(90deg,transparent,transparent 49px,rgba(232,100,26,.04) 50px);pointer-events:none;z-index:0;}
 #app{position:relative;z-index:1;}
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 24px;border-bottom:2px solid rgba(232,100,26,.2);background:linear-gradient(90deg,rgba(232,100,26,.08),rgba(240,242,245,0));}
 .hl{display:flex;align-items:center;gap:14px;}.hl svg{height:70px;width:auto;}
 .hdv{width:1px;height:44px;background:rgba(232,100,26,.3);}
 .hst{font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:#6b7280;font-weight:700;}
@@ -163,6 +162,149 @@ body.dark .month-card .mc-name,.month-card .mc-nums{color:#f3f4f6 !important;}
 body.dark .ley span,.ley-dot{color:#e5e7eb !important;}
 body.dark .inp-item label{color:#f3f4f6 !important;}
 body.dark .modal-box{background:#1f2937;color:#f9fafb;}
+
+/* ============================================================
+   HEADER LAYOUT (desktop)
+   ============================================================ */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 24px;border-bottom:2px solid rgba(232,100,26,.2);background:linear-gradient(90deg,rgba(232,100,26,.08),rgba(240,242,245,0));}
+.hdr-row1{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;}
+.hdr-right{display:flex;align-items:center;gap:14px;}
+.hdr-btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.hdr-clk{text-align:right;}
+
+/* ============================================================
+   RESPONSIVE MÓVIL
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* HEADER */
+  .hdr{padding:0;}
+  .hdr-row1{
+    flex-direction:column;
+    align-items:stretch;
+    padding:8px 12px;
+    gap:6px;
+  }
+  /* Fila logo */
+  .hl{flex:1;}
+  .hl svg{height:40px;}
+  .hdv{display:none;}
+  .hst{font-size:.52rem;}
+  .hsb{font-size:.78rem;}
+  /* Navegación mes centrada */
+  .mnav{justify-content:center;}
+  .mlbl{font-size:.95rem;min-width:130px;}
+  .msub{font-size:.55rem;}
+  .bnav{width:36px;height:36px;font-size:1rem;}
+  /* Botones y reloj */
+  .hdr-right{
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+  }
+  .hdr-btns{justify-content:center;}
+  .hdr-clk{display:none;}
+  .clk{font-size:1.2rem;text-align:center;}
+  .clkd{font-size:.52rem;text-align:center;}
+
+  /* TABS — scroll horizontal */
+  .tabs{
+    padding:0 6px;
+    gap:0;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    flex-wrap:nowrap;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    font-size:.65rem;
+    padding:8px 10px;
+    white-space:nowrap;
+    flex-shrink:0;
+    letter-spacing:.03em;
+  }
+
+  /* VISTAS */
+  .view{padding:10px 10px 32px;gap:10px;}
+
+  /* GRIDS → columna única en móvil */
+  .g5,.g8,.g4,.g3,.g2{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  /* KPIs: 2 columnas */
+  #kpis{grid-template-columns:1fr 1fr;}
+  /* Gauges: 2 columnas (4 por fila sería muy chico) */
+  #gauges{grid-template-columns:repeat(2,1fr);gap:8px;}
+
+  /* CARDS */
+  .card{padding:11px 12px;border-radius:8px;}
+  .kv{font-size:1.4rem;}
+  .kl{font-size:.55rem;}
+  .ks{font-size:.58rem;}
+
+  /* GAUGES */
+  .gn{font-size:.78rem;}
+  .gp{font-size:1.2rem;}
+  .gd{font-size:.62rem;}
+
+  /* GRÁFICAS — altura reducida en móvil */
+  .ch{height:180px;}
+  .chs{height:160px;}
+  .ch-tall{height:280px;}
+
+  /* GRIDS de 2 columnas que deben ser 1 en móvil pequeño */
+  .meta-grid{grid-template-columns:1fr 1fr;}
+  .inp-grid{grid-template-columns:1fr 1fr;}
+
+  /* TABLA — scroll horizontal */
+  .card:has(.tbl){overflow-x:auto;}
+  .tbl{font-size:.7rem;}
+  .tbl th,.tbl td{padding:6px 7px;}
+
+  /* MESES ANUAL — 2 columnas */
+  #anual-months-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px!important;}
+
+  /* MODALES */
+  .modal-box{padding:16px;width:97%;}
+  #st-modal > div{width:95%;padding:20px;}
+
+  /* TICKER — texto un poco más pequeño */
+  .tki{font-size:.63rem;}
+
+  /* BOTONES */
+  .btn-or,.btn-sec,.btn-green,.btn-blue{
+    font-size:.72rem;
+    padding:8px 14px;
+  }
+
+  /* DAY PICKER — botones más grandes para touch */
+  .db{width:40px;height:40px;font-size:.88rem;}
+
+  /* INGRESO FORM */
+  .inp-item input{font-size:.9rem;padding:9px 8px;}
+
+  /* SYNC STATUS — compacto */
+  #sync-status{font-size:.58rem;padding:3px 6px;}
+
+  /* METAS GRID */
+  .meta-grid{grid-template-columns:1fr 1fr;}
+}
+
+/* Móvil muy pequeño (< 400px) */
+@media (max-width: 400px) {
+  .mlbl{font-size:.82rem;min-width:110px;}
+  .tab{font-size:.6rem;padding:7px 8px;}
+  .g5,.g8,.g4,.g3,.g2,#kpis,#gauges{grid-template-columns:1fr 1fr;}
+  .kv{font-size:1.2rem;}
+  .gp{font-size:1.1rem;}
+  .ch{height:160px;}
+  .ch-tall{height:240px;}
+  .db{width:36px;height:36px;font-size:.8rem;}
+  .inp-grid{grid-template-columns:1fr;}
+  .meta-grid{grid-template-columns:1fr;}
+}
 </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -171,45 +313,49 @@ body.dark .modal-box{background:#1f2937;color:#f9fafb;}
 <body>
 <div id="app">
 <header class="hdr">
-  <div class="hl">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220">
-      <rect width="520" height="220" fill="transparent"/>
-      <g opacity="0.18" fill="#E8641A">
-        <polygon points="490,10 520,10 520,40"/><polygon points="460,10 490,10 490,40"/>
-        <polygon points="490,40 520,40 520,70"/><polygon points="430,10 460,10 460,40"/>
-        <polygon points="460,40 490,40 490,70"/><polygon points="490,70 520,70 520,100"/>
-        <polygon points="400,10 430,10 430,40"/><polygon points="430,40 460,40 460,70"/>
-      </g>
-      <g transform="translate(32,52)">
-        <rect x="0" y="0" width="88" height="88" rx="18" ry="18" fill="none" stroke="#E8641A" stroke-width="7"/>
-        <text x="44" y="63" font-family="Arial,sans-serif" font-weight="700" font-size="54" fill="#E8641A" text-anchor="middle">k</text>
-      </g>
-      <text x="140" y="118" font-family="Arial,sans-serif" font-weight="700" font-size="62" fill="#E8641A" letter-spacing="-1">ksaval</text>
-      <text x="145" y="148" font-family="Arial,sans-serif" font-weight="300" font-size="22" fill="#888" letter-spacing="2" font-style="italic">Impulsa.</text>
-      <line x1="32" y1="162" x2="488" y2="162" stroke="#E8641A" stroke-width="1.5" opacity="0.3"/>
-      <text x="260" y="190" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#E8641A" text-anchor="middle" letter-spacing="4" opacity="0.9">SOCIO MAYORISTA</text>
-    </svg>
-    <div class="hdv"></div>
-    <div><div class="hst">Control de Ventas</div><div class="hsb">EDS - BIC</div></div>
-  </div>
-  <div class="mnav">
-    <button class="bnav" id="btn-prev" onclick="chMes(-1)">&#9664;</button>
-    <div>
-      <div class="mlbl" id="mlbl" style="cursor:pointer;" onclick="toggleCalPicker()" title="Seleccionar mes">-</div>
-      <div class="msub" id="msub">-</div>
-      <div id="cal-picker" style="display:none;position:absolute;top:72px;left:50%;transform:translateX(-50%);background:var(--card);border:1.5px solid var(--bd);border-radius:12px;padding:16px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:260px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><button class="yr-btn" onclick="calYrMove(-1)">&#9664;</button><span id="cal-yr-lbl" style="font-weight:800;font-size:1rem;color:var(--tx);"></span><button class="yr-btn" onclick="calYrMove(1)">&#9654;</button></div><div id="cal-months" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div><div style="text-align:right;margin-top:10px;"><button class="btn-sec" style="font-size:.7rem;padding:4px 10px;" onclick="toggleCalPicker()">Cerrar</button></div></div>
+  <!-- Fila 1: logo + navegación mes + reloj (desktop) -->
+  <div class="hdr-row1">
+    <div class="hl">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220">
+        <rect width="520" height="220" fill="transparent"/>
+        <g opacity="0.18" fill="#E8641A">
+          <polygon points="490,10 520,10 520,40"/><polygon points="460,10 490,10 490,40"/>
+          <polygon points="490,40 520,40 520,70"/><polygon points="430,10 460,10 460,40"/>
+          <polygon points="460,40 490,40 490,70"/><polygon points="490,70 520,70 520,100"/>
+          <polygon points="400,10 430,10 430,40"/><polygon points="430,40 460,40 460,70"/>
+        </g>
+        <g transform="translate(32,52)">
+          <rect x="0" y="0" width="88" height="88" rx="18" ry="18" fill="none" stroke="#E8641A" stroke-width="7"/>
+          <text x="44" y="63" font-family="Arial,sans-serif" font-weight="700" font-size="54" fill="#E8641A" text-anchor="middle">k</text>
+        </g>
+        <text x="140" y="118" font-family="Arial,sans-serif" font-weight="700" font-size="62" fill="#E8641A" letter-spacing="-1">ksaval</text>
+        <text x="145" y="148" font-family="Arial,sans-serif" font-weight="300" font-size="22" fill="#888" letter-spacing="2" font-style="italic">Impulsa.</text>
+        <line x1="32" y1="162" x2="488" y2="162" stroke="#E8641A" stroke-width="1.5" opacity="0.3"/>
+        <text x="260" y="190" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#E8641A" text-anchor="middle" letter-spacing="4" opacity="0.9">SOCIO MAYORISTA</text>
+      </svg>
+      <div class="hdv"></div>
+      <div><div class="hst">Control de Ventas</div><div class="hsb">EDS - BIC</div></div>
     </div>
-    <button class="bnav" id="btn-next" onclick="chMes(1)">&#9654;</button>
-  </div>
-  <div style="display:flex;align-items:center;gap:14px;">
-    <div>
-      <button class="btn-sec" onclick="exportBackup()" title="Copia de seguridad" style="font-size:.72rem;padding:7px 14px;">&#128190; Backup</button>
-      <div id="sync-status" title="Estado sincronización Firebase" style="display:flex;align-items:center;gap:5px;font-size:.65rem;font-weight:700;color:var(--mu);padding:4px 8px;border:1px solid var(--bd);border-radius:6px;">
-        <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#d1d5db;display:inline-block;"></span>
-        <span id="sync-lbl">Conectando...</span>
+    <div class="mnav">
+      <button class="bnav" id="btn-prev" onclick="chMes(-1)">&#9664;</button>
+      <div style="position:relative;">
+        <div class="mlbl" id="mlbl" style="cursor:pointer;" onclick="toggleCalPicker()" title="Seleccionar mes">-</div>
+        <div class="msub" id="msub">-</div>
+        <div id="cal-picker" style="display:none;position:absolute;top:52px;left:50%;transform:translateX(-50%);background:var(--card);border:1.5px solid var(--bd);border-radius:12px;padding:16px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:260px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><button class="yr-btn" onclick="calYrMove(-1)">&#9664;</button><span id="cal-yr-lbl" style="font-weight:800;font-size:1rem;color:var(--tx);"></span><button class="yr-btn" onclick="calYrMove(1)">&#9654;</button></div><div id="cal-months" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div><div style="text-align:right;margin-top:10px;"><button class="btn-sec" style="font-size:.7rem;padding:4px 10px;" onclick="toggleCalPicker()">Cerrar</button></div></div>
       </div>
+      <button class="bnav" id="btn-next" onclick="chMes(1)">&#9654;</button>
     </div>
-    <div style="text-align:right;"><button id="theme-toggle" onclick="toggleTheme()" style="background:none;border:1px solid var(--bd);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:.65rem;font-weight:700;color:var(--mu);margin-bottom:4px;display:block;margin-left:auto;">&#9728; CLARO</button><div class="clk" id="clk">--:--:--</div><div class="clkd" id="clkd">--</div></div>
+    <div class="hdr-right">
+      <div class="hdr-btns">
+        <button class="btn-sec" onclick="exportBackup()" title="Copia de seguridad" style="font-size:.72rem;padding:7px 14px;">&#128190; Backup</button>
+        <div id="sync-status" title="Estado sincronización Firebase" style="display:flex;align-items:center;gap:5px;font-size:.65rem;font-weight:700;color:var(--mu);padding:4px 8px;border:1px solid var(--bd);border-radius:6px;">
+          <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#d1d5db;display:inline-block;"></span>
+          <span id="sync-lbl">Conectando...</span>
+        </div>
+        <button id="theme-toggle" onclick="toggleTheme()" style="background:none;border:1px solid var(--bd);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.65rem;font-weight:700;color:var(--mu);">&#9728; CLARO</button>
+      </div>
+      <div class="hdr-clk"><div class="clk" id="clk">--:--:--</div><div class="clkd" id="clkd">--</div></div>
+    </div>
   </div>
 </header>
 <div class="tabs">
@@ -229,7 +375,7 @@ body.dark .modal-box{background:#1f2937;color:#f9fafb;}
     <div class="card"><div class="st"><div class="sb"></div><span class="sl">Galones Diarios por Estacion</span></div><div class="ch"><canvas id="ch1"></canvas></div></div>
     <div class="card"><div class="st"><div class="sb"></div><span class="sl">Cumplimiento por Estacion (%)</span></div><div class="ch"><canvas id="ch2"></canvas></div></div>
   </div>
-  <div class="card"><div class="st"><div class="sb"></div><span class="sl">Acumulado vs Meta del Mes</span></div><div class="chs"><canvas id="ch3"></canvas></div></div>
+
   <div class="card" id="station-detail-card" style="display:none;">
     <div class="st">
       <div class="sb"></div>
@@ -242,7 +388,7 @@ body.dark .modal-box{background:#1f2937;color:#f9fafb;}
   <div class="card"><div class="st"><div class="sb"></div><span class="sl">2026 — Ventas Acumuladas por Mes vs Meta por Mes</span></div><div class="ch-tall"><canvas id="ch-2026-mes"></canvas></div></div>
   <!-- NUEVO: Ventas 2025 por estacion (fijo año 2025) -->
   <div class="card"><div class="st"><div class="sb"></div><span class="sl">Ventas 2025 por Estacion — Galones por Mes</span></div><div class="ch-tall"><canvas id="ch-anual-est"></canvas></div></div>
-  <div class="card"><div class="st"><div class="sb"></div><span class="sl">Resumen de Ventas del Mes Actual</span></div><div id="tbl"></div></div>
+
 </div>
 
 <!-- ACUMULADO ANUAL -->
@@ -576,7 +722,7 @@ function openStModal(stKey,stColor){
       if(v>0){labels.push('D'+d);data.push(v);bgs.push(stColor+'bb');}
     });
     var el=document.getElementById('ch-st-modal');if(!el)return;
-    new Chart(el.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{data:data,backgroundColor:bgs,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmt(c.parsed.y)+' gln';}}}},scales:{x:{ticks:{color:'#6b7280',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#6b7280',font:{size:9},callback:function(v){return (v/1000).toFixed(0)+'K';}},grid:{color:'rgba(0,0,0,.06)'}}}}});
+    new Chart(el.getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{data:data,backgroundColor:bgs,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmt(c.parsed.y)+' gln';}}}},scales:{x:{ticks:{color:'#6b7280',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#6b7280',font:{size:9},callback:function(v){return (v/1000).toFixed(0)+'G';}},grid:{color:'rgba(0,0,0,.06)'}}}}});
   },60);
 }
 function _kpi(label,value,color){
@@ -991,20 +1137,7 @@ function rDash(){
     }
   });
 
-  // Grafico acumulado vs meta
-  dch('ch3');
-  var af = s.ad.filter(function(d){return d.acum>0||d.metaA>0;});
-  CHS.ch3 = new Chart(document.getElementById('ch3').getContext('2d'), {
-    type:'line',
-    data:{
-      labels:af.map(function(d){return d.day;}),
-      datasets:[
-        {label:'Acumulado real', data:af.map(function(d){return d.acum;}), borderColor:'#E8641A', backgroundColor:'rgba(232,100,26,.1)', fill:true, tension:.3, pointRadius:2, borderWidth:2},
-        {label:'Meta acumulada', data:af.map(function(d){return d.metaA;}), borderColor:'rgba(100,116,139,.6)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false}
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#374151',font:{size:12,weight:'bold'},boxWidth:9}},tooltip:{mode:'index',intersect:false,backgroundColor:'#fff',borderColor:'#E8641A',borderWidth:1,titleColor:'#1a1a2e',bodyColor:'#374151'}},scales:{x:{ticks:{color:'#374151',font:{size:11}},grid:{color:'rgba(0,0,0,.06)'}},y:{ticks:{color:'#374151',font:{size:11}},grid:{color:'rgba(0,0,0,.06)'}}}}
-  });
+
 
   // Grafico 2026: ventas acumuladas por mes vs meta por mes
   build2026MesChart();
@@ -1012,15 +1145,7 @@ function rDash(){
   // Grafico 2025 por estacion (siempre año 2025, fijo)
   buildAnualEstChart();
 
-  // Tabla resumen
-  var tdif = s.tg - s.tm;
-  document.getElementById('tbl').innerHTML = '<table class="tbl"><thead><tr><th>Estacion</th><th>Meta Mes</th><th>Vendido</th><th>Diferencia</th><th>Cumplim.</th><th>Progreso</th></tr></thead><tbody>' +
-    s.sts.map(function(st){
-      var df = st.total-st.meta, w = Math.min(st.pct*100,100), bc = sem(st.pct);
-      return '<tr><td><span class="st-color-dot" style="background:'+st.c+'"></span>'+st.k+'</td><td>'+fmt(st.meta)+'</td><td>'+fmt(st.total)+'</td><td class="'+semc(st.pct)+'">'+(df>=0?'+':'')+fmt(df)+'</td><td class="'+semc(st.pct)+'">'+fmtP(st.pct)+'</td><td><div class="pbw"><div class="pb"><div class="pbf" style="width:'+w+'%;background:'+bc+'"></div></div></div></td></tr>';
-    }).join('') +
-    '<tr><td>TOTAL</td><td>'+fmt(s.tm)+'</td><td>'+fmt(s.tg)+'</td><td class="'+semc(s.gp)+'">'+(tdif>=0?'+':'')+fmt(tdif)+'</td><td class="'+semc(s.gp)+'">'+fmtP(s.gp)+'</td><td></td></tr>' +
-    '</tbody></table>';
+
 
   // Ticker
   var items = ['ksaval - '+md.label].concat(s.sts.map(function(st){return st.k+': '+fmt(st.total)+' gln - '+fmtP(st.pct);})).concat(['TOTAL: '+fmt(s.tg)+' gln','META: '+fmt(s.tm)+' gln','CUMPLIMIENTO: '+fmtP(s.gp)]);
@@ -1062,7 +1187,7 @@ function build2026MesChart() {
           callbacks:{label:function(c){var v=c.parsed.y;return v==null?c.dataset.label+': Sin datos':c.dataset.label+': '+v.toLocaleString('es-CO',{maximumFractionDigits:0})+' gln';}}}},
       scales:{
         x:{ticks:{color:'#374151',font:{size:12,weight:'bold'}},grid:{color:'rgba(0,0,0,.06)'}},
-        y:{ticks:{color:'#374151',font:{size:11},callback:function(v){return (v/1000).toFixed(0)+'K';}},grid:{color:'rgba(0,0,0,.06)'}}
+        y:{ticks:{color:'#374151',font:{size:11},callback:function(v){return (v/1000).toFixed(0)+'G';}},grid:{color:'rgba(0,0,0,.06)'}}
       }
     }
   });
@@ -1117,7 +1242,7 @@ function buildAnualEstChart() {
           callbacks:{label:function(c){var v=c.parsed.y;return v==null?c.dataset.label+': Sin datos':c.dataset.label+': '+v.toLocaleString('es-CO',{maximumFractionDigits:0})+' gln';}}}},
       scales:{
         x:{ticks:{color:'#374151',font:{size:12,weight:'bold'}},grid:{color:'rgba(0,0,0,.06)'}},
-        y:{ticks:{color:'#374151',font:{size:11},callback:function(v){return (v/1000).toFixed(0)+'K';}},grid:{color:'rgba(0,0,0,.06)'}}
+        y:{ticks:{color:'#374151',font:{size:11},callback:function(v){return (v/1000).toFixed(0)+'G';}},grid:{color:'rgba(0,0,0,.06)'}}
       }
     }
   });
@@ -1383,7 +1508,7 @@ function buildAnualView() {
           stacked: true,
           position: 'left',
           title: { display: true, text: 'Galones', color: tc, font: { size: 12, weight: 'bold' }, padding: { bottom: 8 } },
-          ticks: { color: tc, font: { size: 11 }, callback: function(v){ return (v/1000).toFixed(0)+'K'; }, padding: 8 },
+          ticks: { color: tc, font: { size: 11 }, callback: function(v){ return (v/1000).toFixed(0)+'G'; }, padding: 8 },
           grid: { color: gc },
           border: { display: false }
         },
