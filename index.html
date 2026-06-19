@@ -401,10 +401,15 @@ body.dark .modal-box{background:#1f2937;color:#f9fafb;}
   <div id="anual-months-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;"></div>
   <!-- Detalle estacion al hacer click en mes -->
   <div id="anual-station-detail" style="display:none;"></div>
-  <!-- Grafico de cumplimiento por estacion en el año -->
-  <div class="card">
-    <div class="st"><div class="sb"></div><span class="sl" id="anual-est-title">Cumplimiento por Estacion en el Año (%)</span></div>
-    <div class="ch-tall"><canvas id="ch-est-anual" style="min-height:420px;"></canvas></div>
+  <!-- Tabla: Metas por EDS ingresadas en el año -->
+  <div class="card" id="card-metas-anual">
+    <div class="st"><div class="sb"></div><span class="sl" id="anual-metas-title">Metas por EDS — Año 2026</span></div>
+    <div id="anual-metas-table"></div>
+  </div>
+  <!-- Cuadro: Ventas vs Metas por mes y estación -->
+  <div class="card" id="card-ventas-vs-metas">
+    <div class="st"><div class="sb"></div><span class="sl" id="anual-vvm-title">Ventas vs Metas — Año 2026</span></div>
+    <div id="anual-vvm-content"></div>
   </div>
 </div>
 
@@ -1202,15 +1207,18 @@ function buildAnualEstChart() {
   if(tEl) tEl.textContent='Comparativo '+prevYear+' vs '+selAnualYear+' — por Estacion';
   var selSt=window._selAnualEst||SK[0]; window._selAnualEst=selSt;
   var stI=SK.indexOf(selSt), stC=stI>=0?SC[stI]:'#E8641A';
-  var dS=[],dP=[],mS=[],mP=[];
+  var dS=[],dP=[],mS=[],avgD=[];
   for(var m=1;m<=12;m++){
     var ks=selAnualYear+'-'+m, kp=prevYear+'-'+m;
     var dsS=getAllDays(ks), dsP=getAllDays(kp);
     var tS=Object.values(dsS).reduce(function(a,d){return a+(d[selSt]||0);},0);
     var tP=Object.values(dsP).reduce(function(a,d){return a+(d[selSt]||0);},0);
-    var ms2=(getMetasForKey(ks)[selSt])||0, mp2=(getMetasForKey(kp)[selSt])||0;
+    var ms2=(getMetasForKey(ks)[selSt])||0;
+    // Promedio diario: total dividido entre días con datos del año actual
+    var daysWithData=Object.values(dsS).filter(function(d){return (d[selSt]||0)>0;}).length;
+    var avg=daysWithData>0?tS/daysWithData:null;
     dS.push(tS>0?tS:null); dP.push(tP>0?tP:null);
-    mS.push(ms2>0?ms2:null); mP.push(mp2>0?mp2:null);
+    mS.push(ms2>0?ms2:null); avgD.push(avg>0?parseFloat(avg.toFixed(1)):null);
   }
   var cont=el.parentElement;
   var bb=cont.querySelector('.est-btn-bar');
@@ -1232,17 +1240,18 @@ function buildAnualEstChart() {
     type:'bar',
     data:{labels:ml,datasets:[
       {label:'Vendido '+prevYear,data:dP,backgroundColor:'rgba(100,116,139,.35)',borderColor:'#64748b',borderWidth:1.5,borderRadius:4},
-      {label:'Meta '+prevYear,data:mP,type:'line',borderColor:'#64748b',borderDash:[6,4],borderWidth:1.5,pointRadius:3,fill:false},
       {label:'Vendido '+selAnualYear,data:dS,backgroundColor:stC+'88',borderColor:stC,borderWidth:1.5,borderRadius:4},
-      {label:'Meta '+selAnualYear,data:mS,type:'line',borderColor:stC,borderDash:[3,3],borderWidth:2,pointRadius:3,fill:false}
+      {label:'Meta '+selAnualYear,data:mS,type:'line',borderColor:stC,borderDash:[3,3],borderWidth:2,pointRadius:3,fill:false},
+      {label:'Prom. Diario '+selAnualYear+' (gln/día)',data:avgD,type:'line',borderColor:'#a855f7',borderWidth:2,borderDash:[4,3],pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:'#a855f7',pointBorderWidth:2,fill:false,yAxisID:'y2'}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{labels:{color:'#374151',font:{size:11,weight:'bold'},boxWidth:9}},
         tooltip:{mode:'index',intersect:false,backgroundColor:'#fff',borderColor:stC,borderWidth:1,titleColor:'#1a1a2e',bodyColor:'#374151',
-          callbacks:{label:function(c){var v=c.parsed.y;return v==null?c.dataset.label+': Sin datos':c.dataset.label+': '+v.toLocaleString('es-CO',{maximumFractionDigits:0})+' gln';}}}},
+          callbacks:{label:function(c){var v=c.parsed.y;if(v==null)return null;if(c.dataset.yAxisID==='y2')return c.dataset.label+': '+v.toLocaleString('es-CO',{maximumFractionDigits:1})+' gln/día';return c.dataset.label+': '+v.toLocaleString('es-CO',{maximumFractionDigits:0})+' gln';}}}},
       scales:{
         x:{ticks:{color:'#374151',font:{size:12,weight:'bold'}},grid:{color:'rgba(0,0,0,.06)'}},
-        y:{ticks:{color:'#374151',font:{size:11},callback:function(v){return (v/1000).toFixed(0)+'G';}},grid:{color:'rgba(0,0,0,.06)'}}
+        y:{position:'left',ticks:{color:'#374151',font:{size:11},callback:function(v){return (v/1000).toFixed(0)+'G';}},grid:{color:'rgba(0,0,0,.06)'}},
+        y2:{position:'right',title:{display:true,text:'Prom. Diario (gln)',color:'#a855f7',font:{size:11,weight:'bold'}},ticks:{color:'#a855f7',font:{size:10},callback:function(v){return v.toFixed(0);}},grid:{display:false}}
       }
     }
   });
@@ -1374,163 +1383,118 @@ function buildAnualView() {
     document.getElementById('anual-station-detail').style.display = 'none';
   }
 
-  // ── GRÁFICA EJECUTIVA ──
-  dch('ch-est-anual');
-  var estEl = document.getElementById('ch-est-anual');
-  if(!estEl) return;
+  // ── TABLA: METAS POR EDS ──
+  buildAnualMetasTable(validMonths, STKEYS, STCOLS);
 
-  var isDark = document.body.classList.contains('dark');
-  var tc = isDark ? '#f3f4f6' : '#374151';
-  var gc = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.05)';
-  var bgTip = isDark ? '#1f2937' : '#ffffff';
+  // ── TABLA: VENTAS VS METAS ──
+  buildAnualVentasVsMetas(validMonths, STKEYS, STCOLS);
+}
 
-  // Solo meses con datos
-  var labels = validMonths.map(function(d){ return d.shortLabel; });
+function buildAnualMetasTable(validMonths, STKEYS, STCOLS) {
+  var titleEl = document.getElementById('anual-metas-title');
+  if(titleEl) titleEl.textContent = 'Metas por EDS — Año ' + selAnualYear;
+  var cont = document.getElementById('anual-metas-table');
+  if(!cont) return;
 
-  // Barras apiladas por estación
-  var barDatasets = STKEYS.map(function(k, i){
-    return {
-      label: k,
-      type: 'bar',
-      data: validMonths.map(function(d){
-        var dd = getAllDays(d.key);
-        var v = Object.values(dd).reduce(function(a,x){ return a+(x[k]||0); }, 0);
-        return v > 0 ? Math.round(v) : null;
-      }),
-      backgroundColor: STCOLS[i],
-      borderColor: STCOLS[i],
-      borderWidth: 0,
-      stack: 'ventas',
-      yAxisID: 'y',
-      order: 2
-    };
+  // Acumular metas por estación para cada mes
+  var totalesPorEst = {};
+  STKEYS.forEach(function(k){ totalesPorEst[k] = 0; });
+
+  var thead = '<thead><tr><th style="text-align:left">EDS</th>';
+  validMonths.forEach(function(d){ thead += '<th>'+d.shortLabel+'</th>'; });
+  thead += '<th>TOTAL AÑO</th></tr></thead>';
+
+  var tbody = '<tbody>';
+  STKEYS.forEach(function(k, i){
+    tbody += '<tr><td><span class="st-color-dot" style="background:'+STCOLS[i]+'"></span>'+k+'</td>';
+    var totalEst = 0;
+    validMonths.forEach(function(d){
+      var m = getMetasForKey(d.key)[k] || 0;
+      totalEst += m;
+      totalesPorEst[k] += m;
+      tbody += '<td>'+(m>0?fmt(m):'-')+'</td>';
+    });
+    tbody += '<td style="color:var(--or);font-weight:800">'+fmt(totalEst)+'</td></tr>';
   });
 
-  // Línea meta
-  var metaDataset = {
-    label: 'Meta',
-    type: 'line',
-    data: validMonths.map(function(d){ return d.meta > 0 ? Math.round(d.meta) : null; }),
-    borderColor: '#94a3b8',
-    borderWidth: 2.5,
-    borderDash: [8, 5],
-    pointRadius: 4,
-    pointBackgroundColor: '#fff',
-    pointBorderColor: '#94a3b8',
-    pointBorderWidth: 2,
-    pointHoverRadius: 7,
-    fill: false,
-    tension: 0,
-    yAxisID: 'y',
-    stack: '',
-    order: 1
-  };
-
-  // Línea cumplimiento %
-  var cumplDataset = {
-    label: 'Cumplimiento %',
-    type: 'line',
-    data: validMonths.map(function(d){ return d.meta > 0 ? parseFloat((d.pct*100).toFixed(1)) : null; }),
-    borderColor: '#E8641A',
-    borderWidth: 3,
-    pointRadius: 8,
-    pointBackgroundColor: validMonths.map(function(d){ return sem(d.pct); }),
-    pointBorderColor: '#fff',
-    pointBorderWidth: 2.5,
-    pointHoverRadius: 12,
-    fill: false,
-    tension: 0.25,
-    yAxisID: 'y2',
-    stack: '',
-    order: 0
-  };
-
-  CHS['ch-est-anual'] = new Chart(estEl.getContext('2d'), {
-    type: 'bar',
-    data: { labels: labels, datasets: barDatasets.concat([metaDataset, cumplDataset]) },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            color: tc,
-            font: { size: 12, weight: 'bold' },
-            boxWidth: 14,
-            padding: 22,
-            usePointStyle: true
-          }
-        },
-        tooltip: {
-          backgroundColor: bgTip,
-          borderColor: '#E8641A',
-          borderWidth: 1,
-          titleColor: tc,
-          bodyColor: tc,
-          titleFont: { size: 13, weight: 'bold' },
-          bodyFont: { size: 12 },
-          padding: 16,
-          callbacks: {
-            title: function(items){
-              var d = validMonths[items[0].dataIndex];
-              return d ? d.label + ' ' + selAnualYear : '';
-            },
-            label: function(c){
-              var v = c.parsed.y;
-              if(v == null || v === 0) return '';
-              if(c.dataset.yAxisID === 'y2')
-                return '  ✓ Cumplimiento: ' + v.toFixed(1) + '%';
-              if(c.dataset.label === 'Meta')
-                return '  □ Meta: ' + v.toLocaleString('es-CO',{maximumFractionDigits:0}) + ' gln';
-              return '  ' + c.dataset.label + ': ' + v.toLocaleString('es-CO',{maximumFractionDigits:0}) + ' gln';
-            },
-            footer: function(items){
-              var total = 0;
-              items.forEach(function(c){
-                if(c.dataset.yAxisID === 'y' && c.dataset.label !== 'Meta' && c.parsed.y)
-                  total += c.parsed.y;
-              });
-              return total > 0 ? 'TOTAL: ' + total.toLocaleString('es-CO',{maximumFractionDigits:0}) + ' gln' : '';
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          stacked: true,
-          ticks: { color: tc, font: { size: 13, weight: 'bold' }, maxRotation: 0, padding: 8 },
-          grid: { display: false },
-          border: { display: false }
-        },
-        y: {
-          stacked: true,
-          position: 'left',
-          title: { display: true, text: 'Galones', color: tc, font: { size: 12, weight: 'bold' }, padding: { bottom: 8 } },
-          ticks: { color: tc, font: { size: 11 }, callback: function(v){ return (v/1000).toFixed(0)+'G'; }, padding: 8 },
-          grid: { color: gc },
-          border: { display: false }
-        },
-        y2: {
-          stacked: false,
-          position: 'right',
-          min: 0,
-          max: 150,
-          title: { display: true, text: 'Cumplimiento %', color: '#E8641A', font: { size: 12, weight: 'bold' }, padding: { bottom: 8 } },
-          ticks: {
-            color: '#E8641A',
-            font: { size: 11 },
-            callback: function(v){ return v + '%'; },
-            stepSize: 25,
-            padding: 8
-          },
-          grid: { display: false },
-          border: { display: false }
-        }
-      }
-    }
+  // Fila totales
+  tbody += '<tr style="border-top:2px solid var(--bd)"><td style="font-weight:800;color:var(--tx)">TOTAL</td>';
+  var grandTotal = 0;
+  validMonths.forEach(function(d){
+    var mt = getMetasForKey(d.key);
+    var sum = STKEYS.reduce(function(a,k){ return a+(mt[k]||0); }, 0);
+    grandTotal += sum;
+    tbody += '<td style="font-weight:800;color:var(--or)">'+(sum>0?fmt(sum):'-')+'</td>';
   });
+  tbody += '<td style="font-weight:900;color:var(--or);font-size:1.05rem">'+fmt(grandTotal)+'</td></tr>';
+  tbody += '</tbody>';
+
+  cont.innerHTML = '<div style="overflow-x:auto"><table class="tbl">'+thead+tbody+'</table></div>'+
+    '<div style="font-size:.7rem;color:var(--mu);margin-top:10px;">* Solo se muestran meses con datos disponibles. Valores en galones.</div>';
+}
+
+function buildAnualVentasVsMetas(validMonths, STKEYS, STCOLS) {
+  var titleEl = document.getElementById('anual-vvm-title');
+  if(titleEl) titleEl.textContent = 'Ventas vs Metas — Año ' + selAnualYear;
+  var cont = document.getElementById('anual-vvm-content');
+  if(!cont) return;
+
+  // Tabla resumen: filas = EDS, columnas = meses, celdas = vendido / meta + % cumplimiento
+  var thead = '<thead><tr><th style="text-align:left">EDS</th>';
+  validMonths.forEach(function(d){ thead += '<th colspan="2">'+d.shortLabel+'</th>'; });
+  thead += '<th colspan="2">TOTAL AÑO</th></tr>';
+  thead += '<tr><th></th>';
+  validMonths.forEach(function(){ thead += '<th style="font-size:.58rem;color:var(--mu)">VENDIDO</th><th style="font-size:.58rem;color:var(--mu)">META</th>'; });
+  thead += '<th style="font-size:.58rem;color:var(--mu)">VENDIDO</th><th style="font-size:.58rem;color:var(--mu)">META</th></tr></thead>';
+
+  var tbody = '<tbody>';
+  STKEYS.forEach(function(k, i){
+    tbody += '<tr><td><span class="st-color-dot" style="background:'+STCOLS[i]+'"></span>'+k+'</td>';
+    var totalVend = 0, totalMeta = 0;
+    validMonths.forEach(function(d){
+      var days = getAllDays(d.key);
+      var vend = Object.values(days).reduce(function(a,dd){ return a+(dd[k]||0); }, 0);
+      var meta = getMetasForKey(d.key)[k] || 0;
+      var pct = meta > 0 ? vend/meta : null;
+      totalVend += vend; totalMeta += meta;
+      var col = pct !== null ? sem(pct) : '#d1d5db';
+      tbody += '<td style="color:var(--tx)">'+(vend>0?fmt(vend):'-')+'</td>';
+      tbody += '<td style="color:'+col+';font-size:.7rem">'+(meta>0?fmt(meta)+(pct!==null?'<br><span style="font-size:.6rem;font-weight:800;color:'+col+'">'+fmtP(pct)+'</span>':''):'-')+'</td>';
+    });
+    var pctTotal = totalMeta > 0 ? totalVend/totalMeta : null;
+    var colT = pctTotal !== null ? sem(pctTotal) : 'var(--tx)';
+    tbody += '<td style="color:'+colT+';font-weight:800">'+fmt(totalVend)+'</td>';
+    tbody += '<td style="color:'+colT+';font-size:.7rem;font-weight:700">'+fmt(totalMeta)+(pctTotal!==null?'<br><span style="font-size:.6rem;font-weight:900;color:'+colT+'">'+fmtP(pctTotal)+'</span>':'')+'</td>';
+    tbody += '</tr>';
+  });
+
+  // Fila totales generales
+  tbody += '<tr style="border-top:2px solid var(--bd)">';
+  tbody += '<td style="font-weight:800;color:var(--tx)">TOTAL</td>';
+  var grandVend = 0, grandMeta = 0;
+  validMonths.forEach(function(d){
+    var days = getAllDays(d.key);
+    var vend = Object.values(days).reduce(function(a,dd){ return a+dd.total; }, 0);
+    var mt = getMetasForKey(d.key);
+    var meta = STKEYS.reduce(function(a,k){ return a+(mt[k]||0); }, 0);
+    grandVend += vend; grandMeta += meta;
+    var pct = meta > 0 ? vend/meta : null;
+    var col = pct !== null ? sem(pct) : '#d1d5db';
+    tbody += '<td style="font-weight:800;color:var(--or)">'+fmt(vend)+'</td>';
+    tbody += '<td style="color:'+col+';font-size:.7rem;font-weight:700">'+fmt(meta)+(pct!==null?'<br><span style="font-size:.6rem;font-weight:900;color:'+col+'">'+fmtP(pct)+'</span>':'')+'</td>';
+  });
+  var gPct = grandMeta > 0 ? grandVend/grandMeta : null;
+  var gCol = gPct !== null ? sem(gPct) : 'var(--or)';
+  tbody += '<td style="font-weight:900;color:var(--or);font-size:1rem">'+fmt(grandVend)+'</td>';
+  tbody += '<td style="color:'+gCol+';font-weight:700">'+fmt(grandMeta)+(gPct!==null?'<br><span style="font-size:.7rem;font-weight:900;color:'+gCol+'">'+fmtP(gPct)+'</span>':'')+'</td>';
+  tbody += '</tr></tbody>';
+
+  cont.innerHTML = '<div style="overflow-x:auto"><table class="tbl">'+thead+tbody+'</table></div>'+
+    '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.7rem;color:var(--mu);">'+
+    '<span style="color:#22c55e;font-weight:700">&#9679; Verde: &ge;95%</span>'+
+    '<span style="color:#f59e0b;font-weight:700">&#9679; Naranja: 80-95%</span>'+
+    '<span style="color:#ef4444;font-weight:700">&#9679; Rojo: &lt;80%</span>'+
+    '</div>';
 }
 
 function selectAnualMonth(m) {
